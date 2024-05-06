@@ -44,6 +44,13 @@ function setRoot() {
           {
             component: {
               name: 'Layouts',
+              options: {
+                topBar: {
+                  title: {
+                    text: 'Test 123'
+                  }
+                }
+              }
             },
           },
         ],

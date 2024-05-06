@@ -14,6 +14,7 @@
 #import <react/renderer/runtimescheduler/RuntimeScheduler.h>
 #import <react/renderer/runtimescheduler/RuntimeSchedulerCallInvoker.h>
 #import <React/RCTSurfacePresenter.h>
+#import <React/RCTComponentViewFactory.h>
 #import <React/RCTBridge+Private.h>
 #import <React/RCTImageLoader.h>
 #import <React/RCTBridgeProxy.h>
@@ -22,10 +23,7 @@
 static NSString *const kRNConcurrentRoot = @"concurrentRoot";
 
 @interface RNNAppDelegate () <RCTTurboModuleManagerDelegate, RCTCxxBridgeDelegate> {
-    std::shared_ptr<const facebook::react::ReactNativeConfig> _reactNativeConfig;
-    facebook::react::ContextContainer::Shared _contextContainer;
-    facebook::react::RuntimeExecutor _runtimeExecutor;
-    std::shared_ptr<facebook::react::RuntimeScheduler> _runtimeScheduler;
+    
 }
 @end
 
@@ -33,25 +31,23 @@ static NSString *const kRNConcurrentRoot = @"concurrentRoot";
 
 @implementation RNNAppDelegate
 
-#ifdef RCT_NEW_ARCH_ENABLED
-- (instancetype)init {
-    if (self = [super init]) {
-        _contextContainer = std::make_shared<facebook::react::ContextContainer const>();
-        _reactNativeConfig = std::make_shared<facebook::react::EmptyReactNativeConfig const>();
-        _contextContainer->insert("ReactNativeConfig", _reactNativeConfig);
-    }
-    return self;
-}
-#endif
-
 - (BOOL)application:(UIApplication *)application
     didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     RCTAppSetupPrepareApp(application, self.turboModuleEnabled);
     self.rootViewFactory = [self createRCTRootViewFactory];
-    
+    //NSDictionary *initProps = updateInitialProps(initialProperties, self.fabricEnabled);
+
 #ifdef RCT_NEW_ARCH_ENABLED
     if (self.bridgelessEnabled) {
+        RCTSetUseNativeViewConfigsInBridgelessMode(self.fabricEnabled);
+
+        // Enable TurboModule interop by default in Bridgeless mode
+        RCTEnableTurboModuleInterop(YES);
+        RCTEnableTurboModuleInteropBridgeProxy(YES);
+        
         self.rootViewFactory.reactHost = [self.rootViewFactory createReactHost:launchOptions];
+        
+        [RCTComponentViewFactory currentComponentViewFactory].thirdPartyFabricComponentsProvider = self;
         
         [ReactNativeNavigation bootstrapWithHost:self.rootViewFactory.reactHost];
         
@@ -62,6 +58,10 @@ static NSString *const kRNConcurrentRoot = @"concurrentRoot";
     // Force init bridge, ignoring generated RCTView
     [self.rootViewFactory viewWithModuleName:self.moduleName];
     
+    if (self.fabricEnabled) {
+      [RCTComponentViewFactory currentComponentViewFactory].thirdPartyFabricComponentsProvider = self;
+    }
+    
     [ReactNativeNavigation bootstrapWithBridge:self.bridge];
     
     return YES;
@@ -71,31 +71,32 @@ static NSString *const kRNConcurrentRoot = @"concurrentRoot";
     return [ReactNativeNavigation extraModulesForBridge:bridge];
 }
 
+
 - (RCTRootViewFactory *)createRCTRootViewFactory
 {
-  __weak __typeof(self) weakSelf = self;
-  RCTBundleURLBlock bundleUrlBlock = ^{
-    RCTAppDelegate *strongSelf = weakSelf;
-    return strongSelf.bundleURL;
-  };
-
-  RCTRootViewFactoryConfiguration *configuration =
-      [[RCTRootViewFactoryConfiguration alloc] initWithBundleURLBlock:bundleUrlBlock
-                                                       newArchEnabled:self.fabricEnabled
-                                                   turboModuleEnabled:self.turboModuleEnabled
-                                                    bridgelessEnabled:self.bridgelessEnabled];
-
-  configuration.createRootViewWithBridge = ^UIView *(RCTBridge *bridge, NSString *moduleName, NSDictionary *initProps)
-  {
-    return [weakSelf createRootViewWithBridge:bridge moduleName:moduleName initProps:initProps];
-  };
-
-  configuration.createBridgeWithDelegate = ^RCTBridge *(id<RCTBridgeDelegate> delegate, NSDictionary *launchOptions)
-  {
-    return [weakSelf createBridgeWithDelegate:delegate launchOptions:launchOptions];
-  };
-
-  return [[RCTRootViewFactory alloc] initWithConfiguration:configuration andTurboModuleManagerDelegate:self];
+    __weak __typeof(self) weakSelf = self;
+    RCTBundleURLBlock bundleUrlBlock = ^{
+        RCTAppDelegate *strongSelf = weakSelf;
+        return strongSelf.bundleURL;
+    };
+    
+    RCTRootViewFactoryConfiguration *configuration =
+    [[RCTRootViewFactoryConfiguration alloc] initWithBundleURLBlock:bundleUrlBlock
+                                                     newArchEnabled:self.fabricEnabled
+                                                 turboModuleEnabled:self.turboModuleEnabled
+                                                  bridgelessEnabled:self.bridgelessEnabled];
+    
+    configuration.createRootViewWithBridge = ^UIView *(RCTBridge *bridge, NSString *moduleName, NSDictionary *initProps)
+    {
+        return [weakSelf createRootViewWithBridge:bridge moduleName:moduleName initProps:initProps];
+    };
+    
+    configuration.createBridgeWithDelegate = ^RCTBridge *(id<RCTBridgeDelegate> delegate, NSDictionary *launchOptions)
+    {
+        return [weakSelf createBridgeWithDelegate:delegate launchOptions:launchOptions];
+    };
+    
+    return [[RCTRootViewFactory alloc] initWithConfiguration:configuration andTurboModuleManagerDelegate:self];
 }
 
 - (NSURL *)sourceURLForBridge:(RCTBridge *)bridge {
@@ -106,6 +107,11 @@ static NSString *const kRNConcurrentRoot = @"concurrentRoot";
 
 - (BOOL)concurrentRootEnabled {
     return true;
+}
+
+- (NSDictionary<NSString *, Class<RCTComponentViewProtocol>> *)thirdPartyFabricComponents
+{
+    return @{};
 }
 
 @end

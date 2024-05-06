@@ -6,6 +6,12 @@
 #import <React_RCTAppDelegate/RCTAppDelegate.h>
 #endif
 
-@interface RNNAppDelegate : RCTAppDelegate
+#ifdef RCT_NEW_ARCH_ENABLED
+#import <React/RCTComponentViewFactory.h>
+#endif
+
+@interface RNNAppDelegate : RCTAppDelegate<RCTComponentViewFactoryComponentProvider>
+
+- (NSDictionary<NSString *, Class<RCTComponentViewProtocol>> *)thirdPartyFabricComponents;
 
 @end

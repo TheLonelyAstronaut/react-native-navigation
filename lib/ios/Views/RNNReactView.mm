@@ -84,7 +84,10 @@ static RCTRootViewSizeFlexibility convertToRootViewSizeFlexibility(RCTSurfaceSiz
                   eventEmitter:(RNNEventEmitter *)eventEmitter
                sizeMeasureMode:(RCTSurfaceSizeMeasureMode)sizeMeasureMode
            reactViewReadyBlock:(RNNReactViewReadyCompletionBlock)reactViewReadyBlock {
-    RCTFabricSurface *surface = [host createSurfaceWithModuleName:moduleName initialProperties: initialProperties];
+    NSMutableDictionary *properties = [initialProperties mutableCopy];
+    properties[@"concurrentRoot"] = @(YES);
+               
+    RCTFabricSurface *surface = [host createSurfaceWithModuleName:moduleName initialProperties: properties];
     
     self = [super initWithSurface:surface sizeMeasureMode:sizeMeasureMode];
                
