@@ -1,10 +1,9 @@
 import React, { useCallback } from 'react';
-import { StyleSheet, View, Text, Pressable } from 'react-native';
-import FastImage, { Source } from 'react-native-fast-image';
+import { StyleSheet, View, Text, Pressable, Image, ImageProps } from 'react-native';
 import { Navigation, NavigationFunctionComponent } from 'react-native-navigation';
 
 interface Props {
-  source: Source;
+  source: ImageProps['source'];
   sharedElementId: string;
 }
 
@@ -19,8 +18,7 @@ const ImageFullScreenViewer: NavigationFunctionComponent<Props> = ({
 
   return (
     <View style={styles.container}>
-      <FastImage
-        // @ts-ignore nativeID isn't included in FastImage props.
+      <Image
         nativeID={sharedElementId}
         style={StyleSheet.absoluteFill}
         source={source}
